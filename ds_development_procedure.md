@@ -1,5 +1,6 @@
 
-# 数据科学项目开发流程 Development Procedure for Data Science Project
+# 数据科学项目开发流程 
+# Development Procedure for Data Science Project
 
 1. 理解业务需求并准确的定义成数据科学问题 (<=1天)
  - 仔细阅读需求文档，并与需求方明确任务目标及审核方式。
