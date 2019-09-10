@@ -106,6 +106,18 @@ def plot_confusion_matrix(y_true, y_pred, normalize = False, title = None, fig_w
 
     return ax
 
-
+# Identify highly correlated features
+def high_corr(corr_matrix, threshold = 0.8):
+    '''
+    This function returns a list of features that are highly correlated with others based on the input threshold
+    '''
+    # Get the magnitude of correlation
+    abs_corr = corr_matrix.abs()
+    # Select upper triangle of the correlation matrix
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(np.bool))
+    # Find the index of feature columns with correlation greater than the threshold
+    to_drop = [column for column in upper.columns if any(upper[column] > threshold)]
+    
+    return to_drop
 
 
