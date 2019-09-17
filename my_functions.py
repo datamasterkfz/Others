@@ -192,51 +192,89 @@ def scatter_3D(xyz_list, xlab, ylab, zlab, angle = 30, alpha = 0.5, legend = Non
 
 # PCA transformation
 def pca_transform(X_train, X_test):
+	'''
+	Input: 
+		- X_train: original train dataset
+		- X_test: original test dataset
+	Output: 
+		- X_train_pca: PCA transformed train dataset
+		- X_test_pca: PCA transformed test dataset
+	'''
 
+	# Import library
 	from sklearn.decomposition import PCA
 	from sklearn.preprocessing import StandardScaler
 
 	# Scaler to standardize data
 	scaler = StandardScaler()
-	# Standardize data
+	# Fit the scaler to standardize data based on original train data
 	scaler.fit(train_x)
-	# Apply transform to both the training set and the test set.
+	# Standardize both the train and test dataset
 	train_x_standardized = scaler.transform(train_x)
 	test_x_standardized = scaler.transform(test_x)
 	# PCA instance
 	pca = PCA()
 	# Compute PCA components based on standardized training data
 	pca.fit(train_x_standardized)
-	# Apply PCA transform on both train and test data
+	# Apply PCA transform on both train and test dataset
 	train_x_pca = pca.transform(train_x_standardized)
 	test_x_pca = pca.transform(test_x_standardized)
 
 	return X_train_pca, X_test_pca
 
+# Variation of model accuracy based on # of PCA components
 def acc_vs_pca(model, X_train, y_train, X_test, y_test, threshold = 0.9):
+	'''
+	Target: What is the minimum number of PCA components need to achieve the threshold model accuracy
+
+	Input:
+		- model: input model instance (e.g. LogisticRegression())
+		- X_train: train dataset
+		- y_train: ground truth of train dataset
+		- X_test: test dataset
+		- y_test: ground truth of test dataset
+		- threshold: The threshold of model accuracy want to achieve based on a subset of PCA components
+			- default: 0.9
+	Output:
+		- acc_pca_df: pandas.DataFrame, containing two columns
+			- n: # of principal components 
+			- accuracy: model accuracy on test dataset
+	'''
     
+    # Initialize the dataframe to store information in the following computation
     acc_pca_df = pd.DataFrame({'n': 1+ np.arange(X_train.shape[1]),
                               'accuracy': None})
     
+    # Experiment with different number of PCA components (1st, 2nd, 3rd, ...)
     for n in acc_pca_df.n:
         # Fit the model on subset of PCA components
         model_pca = model.fit(X_train[:, 0:n], y_train)
-        # Predict
+        # Predict on test dataset
         test_pred = model_pca.predict(X_test[:, 0:n])
-        # Compute the accuracy and store in dataframe
+        # Compute the model accuracy on test dataset
         cur_acc = accuracy_score(y_true = y_test, y_pred = test_pred)
-        # Store the accuracy in dataframe if it does not reach the threshold
+        # Store the accuracy in dataframe
         if cur_acc < threshold:
             print('n = {}, accuracy = {:.2f}%'.format(n, 100*cur_acc))
             acc_pca_df.accuracy[n-1] = cur_acc
+        # If the current model reach the threshold, store the result and return the result
         else:
             print('n = {}, accuracy = {:.2f}%'.format(n, 100*cur_acc))
             acc_pca_df.accuracy[n-1] = cur_acc
+            # Remove rows that have zero information
             return acc_pca_df.dropna()
-        
+    
+    # Remove rows that have zero information and return the result
     return acc_pca_df.dropna()
 
+# Correlation heatmap
 def heatmap_corr(df, fig_width = None, fig_height = None):
+	'''
+	Input:
+	Output:
+	'''
+	
+	# Import library
 	import matplotlib.pyplot as plt
 	# Create fig and ax for visualization
     if fig_width and fig_height:
