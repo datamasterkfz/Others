@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Compilation of my useful functions <3
+# Compilation of my handy functions <3
 
 # One-hot encoding
 def one_hot(data):
@@ -106,6 +106,147 @@ def plot_confusion_matrix(y_true, y_pred, normalize = False, title = None, fig_w
 
     return ax
 
+# Colored 3D plot
+def scatter_3D(xyz_list, xlab, ylab, zlab, angle = 30, alpha = 0.5, legend = None, fig_width = None, fig_height = None):
+    
+    '''
+    Input: xyz_list = [(x1,y1,z1), (x2,y2,z2), ...]
+    Output: 3D plot that color data points for different classes
+            e.g.: Red - (x1,y1,z1), Blue - (x2,y2,z2), ....
+    '''
+    
+    # Import library
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    import itertools
+    
+    # Create fig and ax for visualization
+    if fig_width and fig_height:
+        fig = plt.figure(figsize = (fig_width, fig_height))
+    else:
+        fig = plt.figure()
+       
+    # Create 3D ax object 
+    ax = fig.add_subplot(111, projection='3d')
+    # Make iterable marker and color 
+    marker = itertools.cycle(('o','+','?'))
+    color = itertools.cycle(('b', 'g', 'r', 'c', 'm', 'y', 'k', 'w'))
+    
+    # Note: Each class will get assigned a different combination of color and marker, this function can
+    #       label up to 24 (8 colors x 3 markers) different classes
+    #     - The function will iterate over color first, then the marker
+
+    # Current color cycle
+    color_cycle = 0
+    # Initialize the marker and color
+    init_marker = next(marker)
+    init_color = next(color)
+    # Create variables to capture the current marker and color
+    cur_marker = init_marker
+    cur_color = init_color
+    
+    # Loop over each class
+    for xyz in xyz_list:
+    	# Unpack the x,y,z coordinates for all the data points for the current class
+        x,y,z = xyz
+        
+        # If the color cycle is zero
+        if color_cycle == 0:
+        	# Plot the data with current color and marker (No change at all)
+            ax.scatter(x, y, z, c = cur_color, marker = cur_marker, alpha = alpha)
+            # Increment the color cycle
+            color_cycle += 1
+        # If the color cycle does not reach the maximum (8)
+        elif color_cycle < 8:
+        	# Plot the data with the same marker but use a different color (next color in the color list)
+            ax.scatter(x, y, z, c = next(color), marker = cur_marker, alpha = alpha)
+            # Increment the color cycle
+            color_cycle += 1
+        # If the color cycle reaches the maximum (8)
+        elif color_cycle == 8:
+        	# Use a different marker (next marker in the list)
+            cur_marker = next(marker)
+            # Use next color in the list (Should cycle back to the first color in the color list)
+            cur_color = next(color)
+            # Plot the data with a different marker and different color
+            ax.scatter(x, y, z, c = cur_color, marker = cur_marker, alpha = alpha)
+            # Reset the color cycle since we are back to the first color in list
+            color_cycle = 0
+        else:
+        	# This should not happen. BUG!
+            print('Ooops! Something went wrong X(\ncolor_cycle: {}, cur_marker:{}, cur_color:{}'.format(color_cycle, cur_marker, cur_color))
+    
+    # Set the axis names
+    ax.set_xlabel(xlab)
+    ax.set_ylabel(ylab)
+    ax.set_zlabel(zlab)
+    # View the 3D plot from a certain angle
+    ax.view_init(azim=angle)
+    # Add the legend
+    ax.legend(legend)
+    # Show the plot
+    plt.show()
+
+    # Return the 3D plot object
+    return ax
+
+# PCA transformation
+def pca_transform(X_train, X_test):
+
+	from sklearn.decomposition import PCA
+	from sklearn.preprocessing import StandardScaler
+
+	# Scaler to standardize data
+	scaler = StandardScaler()
+	# Standardize data
+	scaler.fit(train_x)
+	# Apply transform to both the training set and the test set.
+	train_x_standardized = scaler.transform(train_x)
+	test_x_standardized = scaler.transform(test_x)
+	# PCA instance
+	pca = PCA()
+	# Compute PCA components based on standardized training data
+	pca.fit(train_x_standardized)
+	# Apply PCA transform on both train and test data
+	train_x_pca = pca.transform(train_x_standardized)
+	test_x_pca = pca.transform(test_x_standardized)
+
+	return X_train_pca, X_test_pca
+
+def acc_vs_pca(model, X_train, y_train, X_test, y_test, threshold = 0.9):
+    
+    acc_pca_df = pd.DataFrame({'n': 1+ np.arange(X_train.shape[1]),
+                              'accuracy': None})
+    
+    for n in acc_pca_df.n:
+        # Fit the model on subset of PCA components
+        model_pca = model.fit(X_train[:, 0:n], y_train)
+        # Predict
+        test_pred = model_pca.predict(X_test[:, 0:n])
+        # Compute the accuracy and store in dataframe
+        cur_acc = accuracy_score(y_true = y_test, y_pred = test_pred)
+        # Store the accuracy in dataframe if it does not reach the threshold
+        if cur_acc < threshold:
+            print('n = {}, accuracy = {:.2f}%'.format(n, 100*cur_acc))
+            acc_pca_df.accuracy[n-1] = cur_acc
+        else:
+            print('n = {}, accuracy = {:.2f}%'.format(n, 100*cur_acc))
+            acc_pca_df.accuracy[n-1] = cur_acc
+            return acc_pca_df.dropna()
+        
+    return acc_pca_df.dropna()
+
+def heatmap_corr(df, fig_width = None, fig_height = None):
+	import matplotlib.pyplot as plt
+	# Create fig and ax for visualization
+    if fig_width and fig_height:
+        fig, ax = plt.subplots(figsize = (fig_width, fig_height))
+    else:
+        fig, ax = plt.subplots()
+	ax = sns.heatmap(df.corr(), vmin = -1, vmax = 1, square = True, cmap = sns.diverging_palette(220, 10, as_cmap=True))
+
+	return ax
+
 # Identify highly correlated features
 def high_corr(corr_matrix, threshold = 0.8):
     '''
@@ -120,4 +261,14 @@ def high_corr(corr_matrix, threshold = 0.8):
     
     return to_drop
 
+# Compute the number of months in difference for two datetime objects
+def month_diff(a, b):
+    '''
+    Input: 
+        - a: timestamp objects
+        - b: timestamp objects
+    Output:
+        Int: Number of months in difference
+    '''
+    return 12 * (a.year - b.year) + (a.month - b.month)
 
